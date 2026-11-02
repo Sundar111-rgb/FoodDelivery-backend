@@ -1,0 +1,105 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      UserRole @default(CUSTOMER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders            Order[]
+  ownedRestaurants  Restaurant[] @relation("RestaurantOwner")
+  deliveryOrders    Order[]      @relation("DeliveryPartner")
+  latitude          Float?
+  longitude         Float?
+  locationUpdatedAt DateTime?
+}
+
+model Restaurant {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  address     String
+  imageUrl    String?
+  isOpen      Boolean  @default(true)
+  ownerId     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner     User?      @relation("RestaurantOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  menuItems MenuItem[]
+  orders    Order[]
+}
+
+model MenuItem {
+  id           String   @id @default(uuid())
+  name         String
+  description  String?
+  price        Decimal  @db.Decimal(10, 2)
+  imageUrl     String?
+  isAvailable  Boolean  @default(true)
+  restaurantId String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+}
+
+model Order {
+  id                String      @id @default(uuid())
+  status            OrderStatus @default(PENDING)
+  totalAmount       Decimal     @db.Decimal(10, 2)
+  deliveryAddress   String
+  customerId        String
+  restaurantId      String
+  deliveryPartnerId String?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  customer        User       @relation(fields: [customerId], references: [id])
+  restaurant      Restaurant @relation(fields: [restaurantId], references: [id])
+  deliveryPartner User?      @relation("DeliveryPartner", fields: [deliveryPartnerId], references: [id], onDelete: SetNull)
+
+  items OrderItem[]
+}
+
+model OrderItem {
+  id         String   @id @default(uuid())
+  quantity   Int
+  price      Decimal  @db.Decimal(10, 2)
+  orderId    String
+  menuItemId String
+  createdAt  DateTime @default(now())
+
+  order    Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItem MenuItem @relation(fields: [menuItemId], references: [id])
+}
+
+enum UserRole {
+  CUSTOMER
+  DELIVERY_PARTNER
+  RESTAURANT_OWNER
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  READY_FOR_PICKUP
+  PICKED_UP
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+}
