@@ -10,6 +10,7 @@ import {
 
 import authMiddleware from '../middleware/authMiddleware.js';
 import authorizeRoles from '../middleware/authorizeRoles.js';
+import { updateRestaurantStatus } from '../controllers/adminController.js';
 
 const router = express.Router();
 
@@ -38,6 +39,13 @@ router.patch(
   authMiddleware,
   authorizeRoles('RESTAURANT_OWNER'),
   updateMyRestaurant
+);
+
+router.patch(
+  '/restaurants/:id/status',
+  authMiddleware,
+  authorizeRoles('ADMIN'),
+  updateRestaurantStatus
 );
 
 export default router;
